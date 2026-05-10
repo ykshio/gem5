@@ -481,10 +481,15 @@ class BaseCache : public ClockedObject
      * @param blk The cache block that was accessed.
      * @param delay The delay until the packet's metadata is present.
      * @param lookup_lat Latency of the respective tag lookup.
+     * @param is_write If true, use writeLatency for the data array
+     *                 access cost instead of dataLatency. Allows the
+     *                 caller to model asymmetric read/write latencies
+     *                 (e.g. MRAM).
      * @return The number of ticks that pass due to a block access.
      */
     Cycles calculateAccessLatency(const CacheBlk* blk, const uint32_t delay,
-                                  const Cycles lookup_lat) const;
+                                  const Cycles lookup_lat,
+                                  bool is_write = false) const;
 
     /**
      * Does all the processing necessary to perform the provided request.
@@ -904,6 +909,13 @@ class BaseCache : public ClockedObject
      * an access to the cache.
      */
     const Cycles dataLatency;
+
+    /**
+     * The latency of a data write to a cache block. Models MRAM-class
+     * memories where writes can be substantially slower than reads.
+     * Defaults to dataLatency when not explicitly configured.
+     */
+    const Cycles writeLatency;
 
     /**
      * This is the forward latency of the cache. It occurs when there

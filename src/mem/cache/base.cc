@@ -98,6 +98,7 @@ BaseCache::BaseCache(const BaseCacheParams &p, unsigned blk_size)
       blkSize(blk_size),
       lookupLatency(p.tag_latency),
       dataLatency(p.data_latency),
+      writeLatency(p.write_latency),
       forwardLatency(p.tag_latency),
       fillLatency(p.data_latency),
       responseLatency(p.response_latency),
@@ -1206,18 +1207,24 @@ BaseCache::calculateTagOnlyLatency(const uint32_t delay,
 
 Cycles
 BaseCache::calculateAccessLatency(const CacheBlk* blk, const uint32_t delay,
-                                  const Cycles lookup_lat) const
+                                  const Cycles lookup_lat,
+                                  bool is_write) const
 {
     Cycles lat(0);
 
     if (blk != nullptr) {
+        // Pick the data array latency based on whether this is a write
+        // (writeLatency) or a read (dataLatency). For MRAM-class memories
+        // these can differ substantially.
+        const Cycles data_lat = is_write ? writeLatency : dataLatency;
+
         // As soon as the access arrives, for sequential accesses first access
         // tags, then the data entry. In the case of parallel accesses the
         // latency is dictated by the slowest of tag and data latencies.
         if (sequentialAccess) {
-            lat = ticksToCycles(delay) + lookup_lat + dataLatency;
+            lat = ticksToCycles(delay) + lookup_lat + data_lat;
         } else {
-            lat = ticksToCycles(delay) + std::max(lookup_lat, dataLatency);
+            lat = ticksToCycles(delay) + std::max(lookup_lat, data_lat);
         }
 
         // Check if the block to be accessed is available. If not, apply the
@@ -1482,7 +1489,12 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
                 lat += compressor->getDecompressionLatency(blk);
             }
         } else {
-            lat = calculateTagOnlyLatency(pkt->headerDelay, tag_latency);
+            // Write hit: charge writeLatency on the data array so that
+            // MRAM-class asymmetric writes are modelled. With the default
+            // write_latency == data_latency this matches the read-hit cost
+            // structure rather than the original tag-only behaviour.
+            lat = calculateAccessLatency(blk, pkt->headerDelay, tag_latency,
+                                         /* is_write = */ true);
         }
 
         satisfyRequest(pkt, blk);

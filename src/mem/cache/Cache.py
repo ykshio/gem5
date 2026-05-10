@@ -88,6 +88,11 @@ class BaseCache(ClockedObject):
 
     tag_latency = Param.Cycles("Tag lookup latency")
     data_latency = Param.Cycles("Data access latency")
+    write_latency = Param.Cycles(
+        Self.data_latency,
+        "Data write latency (defaults to data_latency for backward compat; "
+        "set higher than data_latency to model MRAM-class asymmetric writes)",
+    )
     response_latency = Param.Cycles("Latency for the return path on a miss")
 
     warmup_percentage = Param.Percent(
