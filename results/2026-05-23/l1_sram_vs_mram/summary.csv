@@ -1,0 +1,3 @@
+config,l1d_rlat,l1d_wlat,simTicks,cpi,rd_hits,rd_miss,wr_hits,wr_miss,writebacks,host_s
+l1_sram_4_4,4,4,3403312000,7.926255,67901,749,55661,421,153,0.14
+l1_mram_3_10,3,10,3669644000,8.546538,67901,749,55661,421,153,0.14

@@ -1,0 +1,3 @@
+config,l3_rlat,l3_wlat,l3_write_buffers,simTicks,cpi,l3_hits,l3_misses,l3_accesses,l3_miss_rate,l3_writebacks,host_s
+rlat10_wlat40,10,40,16,48823803000,17.787603,458804,66815,525619,0.127117,,1.90
+rlat40_wlat40,40,40,16,64528733000,23.509260,458804,66815,525619,0.127117,,1.94

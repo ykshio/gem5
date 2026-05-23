@@ -1,0 +1,75 @@
+2026/05/23 17:19:07.750278 cmd_run.go:1600: WARNING: will not expose Kerberos tickets' path: Unsupported KRB5CCNAME: KEYRING:persistent:1472000011
+============================================
+ Step 1: rebuild memstress (now argv[1]=size_mb)
+============================================
+[build_memstress_riscv] using riscv64-unknown-linux-gnu-gcc
+-rwxr-xr-x 1 root root 734280 May 23 08:19 ../bin/riscv/linux/memstress
+
+============================================
+ Step 2: F - WS=4MB sweep (L3 hit mixed)
+============================================
+[run] sram_buf16 : L3 rlat=40 wlat=40 buffers=16 (WS=4MB)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 64528733000 because exiting with last active thread context
+[run] mram35_buf16 : L3 rlat=10 wlat=35 buffers=16 (WS=4MB)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 48823803000 because exiting with last active thread context
+[run] mram50_buf16 : L3 rlat=10 wlat=50 buffers=16 (WS=4MB)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 48823803000 because exiting with last active thread context
+[run] sram_buf4 : L3 rlat=40 wlat=40 buffers=4 (WS=4MB)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 64528733000 because exiting with last active thread context
+[run] mram35_buf4 : L3 rlat=10 wlat=35 buffers=4 (WS=4MB)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 48823803000 because exiting with last active thread context
+[run] mram50_buf4 : L3 rlat=10 wlat=50 buffers=4 (WS=4MB)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 48823803000 because exiting with last active thread context
+[run] rlat10_wlat40 : L3 rlat=10 wlat=40 buffers=16 (WS=4MB)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 48823803000 because exiting with last active thread context
+[run] rlat40_wlat40 : L3 rlat=40 wlat=40 buffers=16 (WS=4MB)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 64528733000 because exiting with last active thread context
+
+=== sweep.csv ===
+config,l3_rlat,l3_wlat,l3_write_buffers,simTicks,cpi,l3_hits,l3_misses,l3_accesses,l3_miss_rate,l3_writebacks,host_s
+sram_buf16,40,40,16,64528733000,23.509260,458804,66815,525619,0.127117,,1.94
+mram35_buf16,10,35,16,48823803000,17.787603,458804,66815,525619,0.127117,,1.92
+mram50_buf16,10,50,16,48823803000,17.787603,458804,66815,525619,0.127117,,1.91
+sram_buf4,40,40,4,64528733000,23.509260,458804,66815,525619,0.127117,,1.92
+mram35_buf4,10,35,4,48823803000,17.787603,458804,66815,525619,0.127117,,1.90
+mram50_buf4,10,50,4,48823803000,17.787603,458804,66815,525619,0.127117,,1.90
+
+=== rlat.csv ===
+config,l3_rlat,l3_wlat,l3_write_buffers,simTicks,cpi,l3_hits,l3_misses,l3_accesses,l3_miss_rate,l3_writebacks,host_s
+rlat10_wlat40,10,40,16,48823803000,17.787603,458804,66815,525619,0.127117,,1.90
+rlat40_wlat40,40,40,16,64528733000,23.509260,458804,66815,525619,0.127117,,1.94
+
+============================================
+ Step 3: H - L1 SRAM vs MRAM head-to-head
+============================================
+[run] l1_sram_4_4 : L1D rlat=4 wlat=4
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+cachewrite done: acc=6470656
+Exiting @ tick 3403312000 because exiting with last active thread context
+[run] l1_mram_3_10 : L1D rlat=3 wlat=10
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+cachewrite done: acc=6470656
+Exiting @ tick 3669644000 because exiting with last active thread context
+
+=== summary.csv ===
+config,l1d_rlat,l1d_wlat,simTicks,cpi,rd_hits,rd_miss,wr_hits,wr_miss,writebacks,host_s
+l1_sram_4_4,4,4,3403312000,7.926255,67901,749,55661,421,153,0.14
+l1_mram_3_10,3,10,3669644000,8.546538,67901,749,55661,421,153,0.14
+
+ALL DONE
