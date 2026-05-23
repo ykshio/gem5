@@ -1,0 +1,113 @@
+============================================
+ Step 0: rebuild memstress (argv[2] = iters)
+============================================
+[build_memstress_riscv] using riscv64-unknown-linux-gnu-gcc
+-rwxr-xr-x 1 root root 734280 May 23 09:49 ../bin/riscv/linux/memstress
+=== A: L2 MRAM sweep (memstress WS=4MB) ===
+[A/run] sram_14_14 : L2 rlat=14 wlat=14
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 64532124000 because exiting with last active thread context
+[A/run] stt_7_25 : L2 rlat=7 wlat=25
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 60797560000 because exiting with last active thread context
+[A/run] stt_7_35 : L2 rlat=7 wlat=35
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 60797838000 because exiting with last active thread context
+[A/run] sot_7_18 : L2 rlat=7 wlat=18
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 60797553000 because exiting with last active thread context
+=== B: WS sweep ===
+[B/run] WS=1MB tech=sram rlat=40 wlat=40
+memstress done: size=1MB iters=4 acc=6389760
+Exiting @ tick 16822153000 because exiting with last active thread context
+[B/run] WS=1MB tech=stt rlat=10 wlat=35
+memstress done: size=1MB iters=4 acc=6389760
+Exiting @ tick 12864595000 because exiting with last active thread context
+[B/run] WS=2MB tech=sram rlat=40 wlat=40
+memstress done: size=2MB iters=4 acc=12779520
+Exiting @ tick 32725723000 because exiting with last active thread context
+[B/run] WS=2MB tech=stt rlat=10 wlat=35
+memstress done: size=2MB iters=4 acc=12779520
+Exiting @ tick 24852725000 because exiting with last active thread context
+[B/run] WS=4MB tech=sram rlat=40 wlat=40
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 64532124000 because exiting with last active thread context
+[B/run] WS=4MB tech=stt rlat=10 wlat=35
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 48827432000 because exiting with last active thread context
+[B/run] WS=8MB tech=sram rlat=40 wlat=40
+memstress done: size=8MB iters=4 acc=51118080
+Exiting @ tick 128145032000 because exiting with last active thread context
+[B/run] WS=8MB tech=stt rlat=10 wlat=35
+memstress done: size=8MB iters=4 acc=51118080
+Exiting @ tick 96776852000 because exiting with last active thread context
+[B/run] WS=16MB tech=sram rlat=40 wlat=40
+memstress done: size=16MB iters=4 acc=102236160
+Exiting @ tick 255375808000 because exiting with last active thread context
+[B/run] WS=16MB tech=stt rlat=10 wlat=35
+memstress done: size=16MB iters=4 acc=102236160
+Exiting @ tick 192681115000 because exiting with last active thread context
+[B/run] WS=32MB tech=sram rlat=40 wlat=40
+memstress done: size=32MB iters=4 acc=204472320
+Exiting @ tick 795252870000 because exiting with last active thread context
+[B/run] WS=32MB tech=stt rlat=10 wlat=35
+memstress done: size=32MB iters=4 acc=204472320
+Exiting @ tick 669343557000 because exiting with last active thread context
+[B/run] WS=64MB tech=sram rlat=40 wlat=40
+memstress done: size=64MB iters=4 acc=408944640
+Exiting @ tick 1586827635000 because exiting with last active thread context
+[B/run] WS=64MB tech=stt rlat=10 wlat=35
+memstress done: size=64MB iters=4 acc=408944640
+Exiting @ tick 1335029815000 because exiting with last active thread context
+=== C: long-sim leakage scaling (WS=4MB, ITERS up) ===
+[C/run] tech=sram iters=4
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 64531827000 because exiting with last active thread context
+[C/run] tech=stt iters=4
+memstress done: size=4MB iters=4 acc=25559040
+Exiting @ tick 48827432000 because exiting with last active thread context
+[C/run] tech=sram iters=25
+memstress done: size=4MB iters=25 acc=176947200
+Exiting @ tick 372814375000 because exiting with last active thread context
+[C/run] tech=stt iters=25
+memstress done: size=4MB iters=25 acc=176947200
+Exiting @ tick 274534901000 because exiting with last active thread context
+[C/run] tech=sram iters=50
+memstress done: size=4MB iters=50 acc=394854400
+Exiting @ tick 739816442000 because exiting with last active thread context
+[C/run] tech=stt iters=50
+memstress done: size=4MB iters=50 acc=394854400
+Exiting @ tick 543233311000 because exiting with last active thread context
+
+=== A/sweep.csv ===
+config,l2_rlat,l2_wlat,simTicks,cpi,l2_hits,l2_misses,l2_wb_in,host_s
+sram_14_14,14,14,64532124000,23.510409,41,525641,262318,1.91
+stt_7_25,7,25,60797560000,22.149829,41,525641,262318,1.92
+stt_7_35,7,35,60797838000,22.149930,41,525641,262318,1.93
+sot_7_18,7,18,60797553000,22.149827,41,525641,262318,1.91
+=== B/sweep.csv ===
+ws_mb,tech,l3_rlat,l3_wlat,simTicks,cpi,l3_hits,l3_misses,l3_miss_rate,l3_wb_in,host_s
+1,sram,40,40,16822153000,21.624528,114740,17685,0.133547,127400,0.52
+1,stt,10,35,12864595000,16.537170,114740,17685,0.133547,127400,0.50
+2,sram,40,40,32725723000,22.827653,229428,34069,0.129296,258472,0.96
+2,stt,10,35,24852725000,17.335885,229428,34069,0.129296,258472,0.95
+4,sram,40,40,64532124000,23.510409,458804,66837,0.127153,520616,1.91
+4,stt,10,35,48827432000,17.788860,458804,66837,0.127153,520616,1.91
+8,sram,40,40,128145032000,23.875157,917556,132373,0.126078,1044904,3.91
+8,stt,10,35,96776852000,18.030839,917556,132373,0.126078,1044904,3.88
+16,sram,40,40,255375808000,24.063984,1835009,263492,0.125562,2093476,7.81
+16,stt,10,35,192681115000,18.156282,1835009,263492,0.125562,2093476,7.86
+32,sram,40,40,795252870000,37.685753,0,4195653,1,2097303,22.36
+32,stt,10,35,669343557000,31.719114,0,4195653,1,2097303,22.23
+64,sram,40,40,1586827635000,37.708055,0,8389957,1,4194455,44.48
+64,stt,10,35,1335029815000,31.724541,0,8389957,1,4194455,44.38
+=== C/sweep.csv ===
+tech,iters,simTicks,cpi,l3_hits,l3_miss,l3_wb_in,host_s
+sram,4,64531827000,23.509419,458802,66835,520612,1.96
+stt,4,48827432000,17.788192,458802,66835,520612,1.94
+sram,25,372814375000,22.584243,3211314,66835,3273124,11.32
+stt,25,274534901000,16.630697,3211314,66835,3273124,11.20
+sram,50,739816442000,22.492414,6488114,66835,6549924,22.65
+stt,50,543233311000,16.515757,6488114,66835,6549924,22.44
+
+ALL DONE
