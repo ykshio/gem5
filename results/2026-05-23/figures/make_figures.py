@@ -225,6 +225,36 @@ if os.path.exists(h_csv):
 else:
     print("[skip] l1_sram_vs_mram.png: summary.csv not yet generated")
 
+# ----------- Figure 8: main memory DRAM vs MRAM (round 3 N) -----------
+mm_csv = "/home/26kmc17/gem5/results/2026-05-23/main_mem/summary.csv"
+if os.path.exists(mm_csv):
+    mm_rows = list(csv.DictReader(open(mm_csv)))
+    if mm_rows:
+        # group by workload
+        wls = sorted(set(r["workload"] for r in mm_rows))
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        for ax, wl in zip(axes, wls):
+            wl_rows = [r for r in mm_rows if r["workload"] == wl]
+            labels_m = [f"{r['config']}\n{r['main_lat']}" for r in wl_rows]
+            sims_m = [int(r["simTicks"]) / 1e9 for r in wl_rows]
+            cols = ["#1f77b4", "#ff7f0e", "#d62728"]
+            ax.bar(range(len(wl_rows)), sims_m, color=cols)
+            for i, v in enumerate(sims_m):
+                ax.text(i, v, f"{v:.2f} s", ha="center", va="bottom", fontsize=9)
+            ax.set_xticks(range(len(wl_rows)))
+            ax.set_xticklabels(labels_m, fontsize=8)
+            ax.set_ylabel("simTicks [s]")
+            ax.set_title(f"{wl}")
+            ax.grid(axis="y", alpha=0.3)
+        fig.suptitle("Round-3 N: main memory DRAM-proxy vs MRAM (preliminary,\n"
+                     "SimpleMemory single-latency approximation; NVMain needed for full eval)")
+        fig.tight_layout()
+        fig.savefig(os.path.join(OUT, "main_mem_dram_vs_mram.png"), dpi=150)
+        plt.close(fig)
+        print("[wrote] main_mem_dram_vs_mram.png")
+else:
+    print("[skip] main_mem_dram_vs_mram.png: main_mem/summary.csv not yet generated")
+
 print("\nFiles in", OUT)
 for f in sorted(os.listdir(OUT)):
     print("  ", f)
