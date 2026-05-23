@@ -10,19 +10,27 @@ Two interpretations of the user's spec are produced:
                  -> every demand access that touches the data array. This
                  is the physically meaningful count for MRAM L1 energy.
 
-Everspin STT-MRAM-like parameters (per access):
-  Erd = 25.872 nJ
-  Ewr = 97.020 nJ
+Parameter sources (see results/2026-05-23/energy/PARAMS.md):
+  MRAM per-access (Erd, Ewr):
+    derived from reference/nvmain/Config/custom/STTRAM_Everspin_16GB.config
+    (tCAS=6, tCWD=10, tWP=14, tRCD=14, CLK=400MHz, IDD0=85mA, VDD=1.8V).
+    Energy = current * VDD * cycles_per_access * t_clk.
+    -> Erd ~= 25.872 nJ, Ewr ~= 97.020 nJ per 64-byte access.
+  SRAM L1 baseline (Erd_SRAM, Ewr_SRAM):
+    placeholder of 0.05 nJ/access (32nm 32KB L1, CACTI 7.0 class).
+    For the final thesis, recompute with DESTINY using the same
+    technology node (22nm) for both SRAM and MRAM so the ratio is
+    apples-to-apples. Current value is a defensible upper bound for
+    the SRAM case (literature is ~30-50 pJ at 32nm).
 """
 import csv
 import os
 import re
 
-ERD = 25.872   # nJ  (Everspin STT-MRAM per-access read)
-EWR = 97.020   # nJ  (Everspin STT-MRAM per-access write)
+ERD = 25.872   # nJ  (Everspin STT-MRAM per-access read; see PARAMS.md)
+EWR = 97.020   # nJ  (Everspin STT-MRAM per-access write; see PARAMS.md)
 
-# SRAM baseline (literature, 32nm 32 KB L1, CACTI-class):
-# orders of magnitude smaller per access. Treat as illustrative.
+# SRAM baseline (CACTI-class 32nm 32 KB L1; replace with DESTINY for thesis)
 ERD_SRAM = 0.05  # nJ
 EWR_SRAM = 0.05  # nJ
 
