@@ -1,0 +1,34 @@
+2026/05/23 16:30:04.750787 cmd_run.go:1600: WARNING: will not expose Kerberos tickets' path: Unsupported KRB5CCNAME: KEYRING:persistent:1472000011
+[run] sram_buf16 : L3 wlat=40 buffers=16
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+memstress done: acc=204472320
+Exiting @ tick 617320621000 because exiting with last active thread context
+[run] sram_buf4 : L3 wlat=40 buffers=4
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+memstress done: acc=204472320
+Exiting @ tick 617320621000 because exiting with last active thread context
+[run] mram35_buf16 : L3 wlat=35 buffers=16
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+memstress done: acc=204472320
+Exiting @ tick 617320621000 because exiting with last active thread context
+[run] mram50_buf16 : L3 wlat=50 buffers=16
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+memstress done: acc=204472320
+Exiting @ tick 617320621000 because exiting with last active thread context
+[run] mram35_buf4 : L3 wlat=35 buffers=4
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+memstress done: acc=204472320
+Exiting @ tick 617320621000 because exiting with last active thread context
+[run] mram50_buf4 : L3 wlat=50 buffers=4
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+memstress done: acc=204472320
+Exiting @ tick 617320621000 because exiting with last active thread context
+
+=== Sweep CSV ===
+config,l3_wlat,l3_write_buffers,simTicks,cpi,l3_hits,l3_misses,l3_writebacks,host_s
+sram_buf16,40,16,617320621000,36.514380,,4195630,2097305,19.74
+sram_buf4,40,4,617320621000,36.514380,,4195630,2097305,19.88
+mram35_buf16,35,16,617320621000,36.514380,,4195630,2097305,19.91
+mram50_buf16,50,16,617320621000,36.514380,,4195630,2097305,19.82
+mram35_buf4,35,4,617320621000,36.514380,,4195630,2097305,19.97
+mram50_buf4,50,4,617320621000,36.514380,,4195630,2097305,20.09
