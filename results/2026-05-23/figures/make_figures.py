@@ -255,6 +255,130 @@ if os.path.exists(mm_csv):
 else:
     print("[skip] main_mem_dram_vs_mram.png: main_mem/summary.csv not yet generated")
 
+# ----------- Figure 9: L2 MRAM sweep (round 4 A) -----------
+l2_csv = "/home/26kmc17/gem5/results/2026-05-23/l2_mram/sweep.csv"
+if os.path.exists(l2_csv):
+    l2_rows = list(csv.DictReader(open(l2_csv)))
+    if l2_rows:
+        labels = [f"{r['config']}\nrlat={r['l2_rlat']}\nwlat={r['l2_wlat']}"
+                  for r in l2_rows]
+        sims = [int(r["simTicks"]) / 1e9 for r in l2_rows]
+        cpis = [float(r["cpi"]) for r in l2_rows]
+        cols = ["#1f77b4" if r["config"].startswith("sram") else "#d62728"
+                for r in l2_rows]
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        axes[0].bar(range(len(l2_rows)), sims, color=cols)
+        axes[0].set_xticks(range(len(l2_rows)))
+        axes[0].set_xticklabels(labels, fontsize=8)
+        for i, v in enumerate(sims):
+            axes[0].text(i, v, f"{v:.2f} s", ha="center", va="bottom", fontsize=9)
+        axes[0].set_ylabel("simTicks [s]")
+        axes[0].set_title("Speed")
+        axes[0].grid(axis="y", alpha=0.3)
+        axes[1].bar(range(len(l2_rows)), cpis, color=cols)
+        axes[1].set_xticks(range(len(l2_rows)))
+        axes[1].set_xticklabels(labels, fontsize=8)
+        for i, v in enumerate(cpis):
+            axes[1].text(i, v, f"{v:.2f}", ha="center", va="bottom", fontsize=9)
+        axes[1].set_ylabel("CPI")
+        axes[1].set_title("CPI")
+        axes[1].grid(axis="y", alpha=0.3)
+        fig.suptitle("Round-4 A: L2 MRAM sweep (memstress 4MB)\n"
+                     "blue=SRAM, red=MRAM variants")
+        fig.tight_layout()
+        fig.savefig(os.path.join(OUT, "l2_mram_sweep.png"), dpi=150)
+        plt.close(fig)
+        print("[wrote] l2_mram_sweep.png")
+else:
+    print("[skip] l2_mram_sweep.png: l2_mram/sweep.csv not yet generated")
+
+# ----------- Figure 10: WS sweep (round 4 B) -----------
+ws_csv = "/home/26kmc17/gem5/results/2026-05-23/ws_sweep/sweep.csv"
+if os.path.exists(ws_csv):
+    ws_rows = list(csv.DictReader(open(ws_csv)))
+    if ws_rows:
+        sram_rows = [r for r in ws_rows if r["tech"] == "sram"]
+        stt_rows  = [r for r in ws_rows if r["tech"] == "stt"]
+        sizes = [int(r["ws_mb"]) for r in sram_rows]
+        sram_sims = [int(r["simTicks"]) / 1e9 for r in sram_rows]
+        stt_sims  = [int(r["simTicks"]) / 1e9 for r in stt_rows]
+        speedup = [s / m for s, m in zip(sram_sims, stt_sims)]
+        miss_rate = [float(r["l3_miss_rate"]) for r in sram_rows]
+        fig, axes = plt.subplots(1, 2, figsize=(11, 4.5))
+        axes[0].plot(sizes, sram_sims, "-o", color="#1f77b4", label="SRAM 40/40")
+        axes[0].plot(sizes, stt_sims,  "-s", color="#d62728", label="STT-MRAM 10/35")
+        axes[0].set_xscale("log", base=2)
+        axes[0].set_yscale("log")
+        axes[0].set_xlabel("Working set [MB] (log)")
+        axes[0].set_ylabel("simTicks [s] (log)")
+        axes[0].set_title("Runtime vs working set")
+        axes[0].grid(alpha=0.3, which="both")
+        axes[0].legend()
+        # speedup vs WS, twin with miss rate
+        ax_b = axes[1]
+        ax_b.plot(sizes, speedup, "-o", color="#2ca02c", label="MRAM speedup")
+        ax_b.set_xscale("log", base=2)
+        ax_b.set_xlabel("Working set [MB] (log)")
+        ax_b.set_ylabel("Speedup SRAM/MRAM", color="#2ca02c")
+        ax_b.axhline(1.0, color="gray", linestyle="--", alpha=0.5)
+        ax_b.grid(alpha=0.3)
+        ax_b2 = ax_b.twinx()
+        ax_b2.plot(sizes, miss_rate, "-^", color="#ff7f0e",
+                   label="L3 miss rate", alpha=0.7)
+        ax_b2.set_ylabel("L3 miss rate", color="#ff7f0e")
+        ax_b.set_title("MRAM speedup vs working set")
+        fig.suptitle("Round-4 B: working-set sweep (SRAM vs STT-MRAM L3)")
+        fig.tight_layout()
+        fig.savefig(os.path.join(OUT, "ws_sweep.png"), dpi=150)
+        plt.close(fig)
+        print("[wrote] ws_sweep.png")
+else:
+    print("[skip] ws_sweep.png: ws_sweep/sweep.csv not yet generated")
+
+# ----------- Figure 11: long-sim leakage scaling (round 4 C) -----------
+long_csv = "/home/26kmc17/gem5/results/2026-05-23/long_sim/sweep.csv"
+if os.path.exists(long_csv):
+    long_rows = list(csv.DictReader(open(long_csv)))
+    if long_rows:
+        # Compute total energy with leakage for each (tech, iters)
+        ERD_M, EWR_M = 25.872, 97.020  # MRAM (Everspin)
+        ERD_S, EWR_S = 0.05,   0.05    # SRAM
+        P_LEAK = {"sram": 5.00, "stt": 0.20}  # W (from PARAMS_leakage.md)
+        plot_data = {}
+        for r in long_rows:
+            tech = r["tech"]
+            it = int(r["iters"])
+            t_s = int(r["simTicks"]) / 1e12
+            rd = int(r["l3_hits"] or 0)
+            wb = int(r["l3_wb_in"] or 0)
+            if tech == "sram":
+                erd, ewr = ERD_S, EWR_S
+            else:
+                erd, ewr = ERD_M, EWR_M
+            e_dyn = (rd * erd + wb * ewr) / 1e6  # mJ
+            e_leak = P_LEAK[tech] * t_s * 1e3    # mJ
+            plot_data.setdefault(tech, []).append((it, e_dyn, e_leak, e_dyn + e_leak))
+        # plot: total energy vs iters, two technologies
+        fig, ax = plt.subplots(figsize=(7, 4.5))
+        for tech, color in [("sram", "#1f77b4"), ("stt", "#d62728")]:
+            data = sorted(plot_data.get(tech, []), key=lambda x: x[0])
+            iters = [d[0] for d in data]
+            totals = [d[3] for d in data]
+            ax.plot(iters, totals, "-o", color=color,
+                    label=f"{tech.upper()} total")
+        ax.set_xlabel("ITERS (workload length proxy)")
+        ax.set_ylabel("Total L3 energy [mJ]")
+        ax.set_title("Round-4 C: leakage advantage grows with workload length\n"
+                     "(WS=4MB, memstress)")
+        ax.grid(alpha=0.3)
+        ax.legend()
+        fig.tight_layout()
+        fig.savefig(os.path.join(OUT, "long_sim_leakage.png"), dpi=150)
+        plt.close(fig)
+        print("[wrote] long_sim_leakage.png")
+else:
+    print("[skip] long_sim_leakage.png: long_sim/sweep.csv not yet generated")
+
 print("\nFiles in", OUT)
 for f in sorted(os.listdir(OUT)):
     print("  ", f)
