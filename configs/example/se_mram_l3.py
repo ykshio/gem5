@@ -24,6 +24,7 @@ from m5.objects import (
     Process,
     Root,
     SEWorkload,
+    SimpleMemory,
     SrcClockDomain,
     SystemXBar,
     System,
@@ -102,6 +103,14 @@ parser.add_argument("--l3-write-latency", type=int, default=40,
                     help="L3 write latency in cycles")
 parser.add_argument("--l3-write-buffers", type=int, default=16,
                     help="L3 write buffer entries (back-pressure depth)")
+parser.add_argument("--main-mem-type", default="dram", choices=["dram", "simple"],
+                    help="dram = MemCtrl+DDR3 (default); simple = SimpleMemory "
+                         "with a single fixed latency (round-3 N preliminary)")
+parser.add_argument("--main-latency", default="50ns",
+                    help="Main-memory latency for --main-mem-type=simple "
+                         "(used as request->response delay; single value)")
+parser.add_argument("--main-bandwidth", default="12.8GB/s",
+                    help="Main-memory bandwidth for --main-mem-type=simple")
 parser.add_argument("--max-insts", type=int, default=0,
                     help="Stop after this many instructions (0 = no limit)")
 args = parser.parse_args()
@@ -161,11 +170,22 @@ system.l3.mem_side = system.membus.cpu_side_ports
 # Interrupt wiring (RISC-V CPU still needs this)
 system.cpu.createInterruptController()
 
-# Memory controller
-system.mem_ctrl = MemCtrl()
-system.mem_ctrl.dram = DDR3_1600_8x8()
-system.mem_ctrl.dram.range = system.mem_ranges[0]
-system.mem_ctrl.port = system.membus.mem_side_ports
+# Memory controller / main memory
+if args.main_mem_type == "dram":
+    system.mem_ctrl = MemCtrl()
+    system.mem_ctrl.dram = DDR3_1600_8x8()
+    system.mem_ctrl.dram.range = system.mem_ranges[0]
+    system.mem_ctrl.port = system.membus.mem_side_ports
+else:
+    # SimpleMemory mode: round-3 N preliminary swap. Models main memory
+    # as a flat-latency device with no DRAM channel/rank/bank structure
+    # nor read/write asymmetry. Sufficient for a sensitivity-style
+    # comparison of DRAM-class vs MRAM-class latencies; NVMain is needed
+    # for accurate MRAM main-memory modelling.
+    system.mem_ctrl = SimpleMemory(latency=args.main_latency,
+                                   bandwidth=args.main_bandwidth)
+    system.mem_ctrl.range = system.mem_ranges[0]
+    system.mem_ctrl.port = system.membus.mem_side_ports
 system.system_port = system.membus.cpu_side_ports
 
 # Workload
@@ -187,8 +207,10 @@ print(
     f"write_lat={args.l2_write_latency} | "
     f"L3 read/data_lat={args.l3_read_latency} "
     f"write_lat={args.l3_write_latency} "
-    f"write_buffers={args.l3_write_buffers} cycles "
-    f"@ {args.cpu_clock}",
+    f"write_buffers={args.l3_write_buffers} cycles | "
+    f"main_mem={args.main_mem_type}"
+    + (f"({args.main_latency})" if args.main_mem_type == "simple" else "")
+    + f" @ {args.cpu_clock}",
     flush=True,
 )
 
