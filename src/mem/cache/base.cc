@@ -45,6 +45,8 @@
 
 #include "mem/cache/base.hh"
 
+#include <algorithm>
+
 #include "base/compiler.hh"
 #include "base/logging.hh"
 #include "debug/Cache.hh"
@@ -1389,11 +1391,18 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
         DPRINTF(Cache, "%s new state is %s\n", __func__, blk->print());
         incHitCount(pkt);
 
-        // When the packet metadata arrives, the tag lookup will be done while
-        // the payload is arriving. Then the block will be ready to access as
-        // soon as the fill is done
+        // MRAM-class asymmetric writes: the data array write itself takes
+        // writeLatency cycles. Block-ready time and the cache-port busy
+        // time both reflect this so that subsequent accesses are stalled
+        // until the slow write completes, propagating back-pressure
+        // upstream. With writeLatency == dataLatency this matches the
+        // original SRAM behaviour.
         blk->setWhenReady(clockEdge(fillLatency) + pkt->headerDelay +
-            std::max(cyclesToTicks(tag_latency), (uint64_t)pkt->payloadDelay));
+            std::max({cyclesToTicks(tag_latency),
+                      cyclesToTicks(writeLatency),
+                      (uint64_t)pkt->payloadDelay}));
+        lat = calculateAccessLatency(blk, pkt->headerDelay, tag_latency,
+                                     /* is_write = */ true);
 
         return true;
     } else if (pkt->cmd == MemCmd::CleanEvict) {
@@ -1465,11 +1474,14 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
 
         incHitCount(pkt);
 
-        // When the packet metadata arrives, the tag lookup will be done while
-        // the payload is arriving. Then the block will be ready to access as
-        // soon as the fill is done
+        // WriteClean is a write into the data array; charge writeLatency
+        // so that MRAM-class asymmetric writes show up.
         blk->setWhenReady(clockEdge(fillLatency) + pkt->headerDelay +
-            std::max(cyclesToTicks(tag_latency), (uint64_t)pkt->payloadDelay));
+            std::max({cyclesToTicks(tag_latency),
+                      cyclesToTicks(writeLatency),
+                      (uint64_t)pkt->payloadDelay}));
+        lat = calculateAccessLatency(blk, pkt->headerDelay, tag_latency,
+                                     /* is_write = */ true);
 
         // If this a write-through packet it will be sent to cache below
         return !pkt->writeThrough();
