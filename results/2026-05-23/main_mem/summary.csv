@@ -1,0 +1,7 @@
+workload,config,main_lat,simTicks,cpi,l3_miss_lat,host_s
+cachewrite,dram_proxy,100ns,3483982000,8.114134,171000,0.13
+cachewrite,mram_main_200,200ns,3635682000,8.467441,271000,0.13
+cachewrite,mram_main_300,300ns,3787382000,8.820748,371000,0.13
+memstress_4mb,dram_proxy,100ns,68231162000,24.858137,171000,1.86
+memstress_4mb,mram_main_200,200ns,74912662000,27.292357,271000,1.89
+memstress_4mb,mram_main_300,300ns,81594162000,29.726577,371000,1.84
