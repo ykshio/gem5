@@ -1,42 +1,54 @@
 /*
  * memstress: write-heavy single-threaded micro-workload for cache experiments.
  *
- * Allocates a buffer larger than L2 so that writes hit L3 (or miss to DRAM
- * after warmup). Performs ITERS passes of strided writes followed by a
- * read-reduce so the writes are not dead code.
+ * Allocates a buffer of the requested size and performs ITERS passes of
+ * strided writes followed by a read-reduce so the writes are not dead code.
+ *
+ * Usage:
+ *   memstress             -> 32 MB working set (default, > L3=16MB, all-miss)
+ *   memstress <size_mb>   -> <size_mb> MB working set
+ *
+ * Typical sizes:
+ *    4   -> fits in L3 16MB, mixed L3 hit/miss after warmup
+ *   32   -> exceeds L3, 100% L3 miss + frequent writebacks toward DRAM
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define BUF_BYTES (32 * 1024 * 1024)   /* 32 MB > L3 (16 MB): forces L3 misses
-                                          and frequent DRAM writebacks, stressing
-                                          the writeBuffer / write-latency path. */
-#define ITERS     4
+#define DEFAULT_MB 32
+#define ITERS      4
 
-int main(void) {
-    volatile unsigned char *buf = (unsigned char *)malloc(BUF_BYTES);
+int main(int argc, char **argv) {
+    size_t mb = DEFAULT_MB;
+    if (argc > 1) {
+        int v = atoi(argv[1]);
+        if (v > 0) mb = (size_t)v;
+    }
+    size_t buf_bytes = mb * (size_t)1024 * 1024;
+
+    volatile unsigned char *buf = (unsigned char *)malloc(buf_bytes);
     if (!buf) {
         fputs("alloc failed\n", stderr);
         return 1;
     }
-
     /* Initialize so that the buffer is resident. */
-    memset((void *)buf, 0, BUF_BYTES);
+    memset((void *)buf, 0, buf_bytes);
 
     unsigned long long acc = 0;
     for (int it = 0; it < ITERS; ++it) {
-        /* Write pass: stride 64 (cache-line) writes, ~16 K writes per pass. */
-        for (int i = 0; i < BUF_BYTES; i += 64) {
+        /* Write pass: stride 64 (cache-line) writes. */
+        for (size_t i = 0; i < buf_bytes; i += 64) {
             buf[i] = (unsigned char)(it + i);
         }
         /* Read-reduce pass to defeat DCE. */
-        for (int i = 0; i < BUF_BYTES; i += 64) {
+        for (size_t i = 0; i < buf_bytes; i += 64) {
             acc += buf[i];
         }
     }
 
-    printf("memstress done: acc=%llu\n", acc);
+    printf("memstress done: size=%zuMB iters=%d acc=%llu\n",
+           mb, ITERS, acc);
     free((void *)buf);
     return 0;
 }
