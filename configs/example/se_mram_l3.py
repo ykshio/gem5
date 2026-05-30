@@ -103,6 +103,9 @@ parser.add_argument("--l3-write-latency", type=int, default=40,
                     help="L3 write latency in cycles")
 parser.add_argument("--l3-write-buffers", type=int, default=16,
                     help="L3 write buffer entries (back-pressure depth)")
+parser.add_argument("--l3-size", default="16MB",
+                    help="L3 cache size (e.g. 4MB, 8MB, 16MB, 32MB). "
+                         "Used for the capacity sweep in Task B/C.")
 parser.add_argument("--main-mem-type", default="dram", choices=["dram", "simple"],
                     help="dram = MemCtrl+DDR3 (default); simple = SimpleMemory "
                          "with a single fixed latency (round-3 N preliminary)")
@@ -161,6 +164,7 @@ system.l3.tag_latency = args.l3_read_latency
 system.l3.data_latency = args.l3_read_latency
 system.l3.write_latency = args.l3_write_latency
 system.l3.write_buffers = args.l3_write_buffers
+system.l3.size = args.l3_size
 system.l3.cpu_side = system.l3bus.mem_side_ports
 
 # L3 -> mem bus -> DRAM
@@ -205,7 +209,7 @@ print(
     f"write_lat={args.l1d_write_latency} | "
     f"L2 read/data_lat={args.l2_read_latency} "
     f"write_lat={args.l2_write_latency} | "
-    f"L3 read/data_lat={args.l3_read_latency} "
+    f"L3 size={args.l3_size} read/data_lat={args.l3_read_latency} "
     f"write_lat={args.l3_write_latency} "
     f"write_buffers={args.l3_write_buffers} cycles | "
     f"main_mem={args.main_mem_type}"
