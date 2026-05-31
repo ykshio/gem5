@@ -25,7 +25,10 @@ WL_OPTS="4 4"
 NCPU=8
 
 CSV=m5out/l3_scaling_8core_summary.csv
-echo "config,technology,l3_size,l3_read_lat,l3_write_lat,simTicks,simSeconds,simInsts,l3_hits,l3_misses,l3_missRate,l3_wbDirtyHits,cpi_avg" > "$CSV"
+HEADER="config,technology,l3_size,l3_read_lat,l3_write_lat,simTicks,simSeconds,simInsts,l3_hits,l3_misses,l3_missRate,l3_wbDirtyHits,cpi_avg"
+# Accumulate CSV rows in memory and write the file ONCE at the end. (Appending
+# with >> per run raced/duplicated on the NFS bind mount.)
+ROWS=()
 printf "%-12s %-7s %-9s %-15s %-11s %-11s %-11s %-9s\n" \
     "config" "l3size" "rl/wl" "simTicks" "l3Hits" "l3Misses" "l3MissRate" "cpiAvg"
 
@@ -50,7 +53,7 @@ run_one () {
     cpiavg=$(grep -E "^system\.cpu[0-9]*\.cpi " "$s" | awk '{s+=$2; n++} END{if(n) printf "%.6f", s/n; else print "n/a"}')
     printf "%-12s %-7s %-9s %-15s %-11s %-11s %-11s %-9s\n" \
         "$tag" "$size" "${rl}/${wl}" "$simTicks" "${hits}" "${misses}" "${mrate}" "${cpiavg}"
-    echo "${tag},${tech},${size},${rl},${wl},${simTicks},${simSec},${simInsts},${hits},${misses},${mrate},${wb},${cpiavg}" >> "$CSV"
+    ROWS+=("${tag},${tech},${size},${rl},${wl},${simTicks},${simSec},${simInsts},${hits},${misses},${mrate},${wb},${cpiavg}")
 }
 
 echo "=== (1) SRAM-class latency (40/40), L3 capacity sweep ==="
@@ -64,6 +67,7 @@ run_one sot_64  sotmram 64MB 10 22
 run_one stt_64  sttmram 64MB 10 35
 
 echo
+{ echo "$HEADER"; printf '%s\n' "${ROWS[@]}"; } > "$CSV"
 echo "CSV: $CSV"
 cat "$CSV"
 echo
