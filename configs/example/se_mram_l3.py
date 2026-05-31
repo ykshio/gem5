@@ -34,6 +34,13 @@ from m5.objects import (
     TimingSimpleCPU,
 )
 
+# DerivO3CPU is an ISA-selected alias (RiscvO3CPU on this build). Imported
+# separately so the script still loads on builds without an O3 CPU.
+try:
+    from m5.objects import DerivO3CPU
+except ImportError:
+    DerivO3CPU = None
+
 
 # ---------------------------- Cache classes ----------------------------
 class L1Cache(Cache):
@@ -130,6 +137,13 @@ system.mem_ranges = [AddrRange(args.mem_size)]
 # CPU
 if args.cpu_type == "TimingSimpleCPU":
     system.cpu = TimingSimpleCPU()
+elif args.cpu_type in ("DerivO3CPU", "O3CPU"):
+    # Out-of-order core. Used by Task X1 to test whether the L3 write-latency
+    # "hiding" seen on TimingSimpleCPU survives on an OoO core (writebacks may
+    # land on the critical path once the core can have many outstanding misses).
+    if DerivO3CPU is None:
+        raise SystemExit("DerivO3CPU not available in this gem5 build")
+    system.cpu = DerivO3CPU()
 else:
     raise SystemExit(f"Unsupported cpu-type: {args.cpu_type}")
 
