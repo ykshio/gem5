@@ -123,6 +123,11 @@ parser.add_argument("--main-bandwidth", default="12.8GB/s",
                     help="Main-memory bandwidth for --main-mem-type=simple")
 parser.add_argument("--max-insts", type=int, default=0,
                     help="Stop after this many instructions (0 = no limit)")
+parser.add_argument("--num-cpus", type=int, default=1,
+                    help="Number of cores (Task X4). 1 = original single-core "
+                         "system (unchanged). >1 builds a CMP: private L1+L2 "
+                         "per core, shared L3, multi-program (the same --cmd "
+                         "binary runs as an independent process on each core).")
 args = parser.parse_args()
 
 
@@ -134,43 +139,76 @@ system.clk_domain = SrcClockDomain(
 system.mem_mode = "timing"
 system.mem_ranges = [AddrRange(args.mem_size)]
 
-# CPU
-if args.cpu_type == "TimingSimpleCPU":
-    system.cpu = TimingSimpleCPU()
-elif args.cpu_type in ("DerivO3CPU", "O3CPU"):
-    # Out-of-order core. Used by Task X1 to test whether the L3 write-latency
-    # "hiding" seen on TimingSimpleCPU survives on an OoO core (writebacks may
-    # land on the critical path once the core can have many outstanding misses).
-    if DerivO3CPU is None:
-        raise SystemExit("DerivO3CPU not available in this gem5 build")
-    system.cpu = DerivO3CPU()
-else:
-    raise SystemExit(f"Unsupported cpu-type: {args.cpu_type}")
+# CPU factory (honours --cpu-type for any core)
+def make_cpu(cpu_id=0):
+    if args.cpu_type == "TimingSimpleCPU":
+        return TimingSimpleCPU(cpu_id=cpu_id)
+    elif args.cpu_type in ("DerivO3CPU", "O3CPU"):
+        # Out-of-order core. Used by Task X1 to test whether the L3 write-latency
+        # "hiding" seen on TimingSimpleCPU survives on an OoO core (writebacks
+        # may land on the critical path once the core has many outstanding misses).
+        if DerivO3CPU is None:
+            raise SystemExit("DerivO3CPU not available in this gem5 build")
+        return DerivO3CPU(cpu_id=cpu_id)
+    else:
+        raise SystemExit(f"Unsupported cpu-type: {args.cpu_type}")
 
-# L1 caches (L1D parameters from CLI)
-system.cpu.icache = L1ICache()
-system.cpu.dcache = L1DCache()
-system.cpu.dcache.tag_latency = args.l1d_read_latency
-system.cpu.dcache.data_latency = args.l1d_read_latency
-system.cpu.dcache.write_latency = args.l1d_write_latency
-system.cpu.icache.cpu_side = system.cpu.icache_port
-system.cpu.dcache.cpu_side = system.cpu.dcache_port
 
-# L1 -> L2 bus
-system.l2bus = L2XBar()
-system.cpu.icache.mem_side = system.l2bus.cpu_side_ports
-system.cpu.dcache.mem_side = system.l2bus.cpu_side_ports
-
-# L2 (parameters from CLI)
-system.l2 = L2Cache()
-system.l2.tag_latency = args.l2_read_latency
-system.l2.data_latency = args.l2_read_latency
-system.l2.write_latency = args.l2_write_latency
-system.l2.cpu_side = system.l2bus.mem_side_ports
-
-# L2 -> L3 bus
+# Shared L2->L3 crossbar (present in both single- and multi-core layouts).
 system.l3bus = L2XBar(width=64)
-system.l2.mem_side = system.l3bus.cpu_side_ports
+
+if args.num_cpus <= 1:
+    # ---- Single-core layout (UNCHANGED: preserves stat names & prior data) ----
+    system.cpu = make_cpu(0)
+
+    # L1 caches (L1D parameters from CLI)
+    system.cpu.icache = L1ICache()
+    system.cpu.dcache = L1DCache()
+    system.cpu.dcache.tag_latency = args.l1d_read_latency
+    system.cpu.dcache.data_latency = args.l1d_read_latency
+    system.cpu.dcache.write_latency = args.l1d_write_latency
+    system.cpu.icache.cpu_side = system.cpu.icache_port
+    system.cpu.dcache.cpu_side = system.cpu.dcache_port
+
+    # L1 -> L2 bus
+    system.l2bus = L2XBar()
+    system.cpu.icache.mem_side = system.l2bus.cpu_side_ports
+    system.cpu.dcache.mem_side = system.l2bus.cpu_side_ports
+
+    # L2 (parameters from CLI)
+    system.l2 = L2Cache()
+    system.l2.tag_latency = args.l2_read_latency
+    system.l2.data_latency = args.l2_read_latency
+    system.l2.write_latency = args.l2_write_latency
+    system.l2.cpu_side = system.l2bus.mem_side_ports
+    system.l2.mem_side = system.l3bus.cpu_side_ports
+else:
+    # ---- Multi-core CMP layout (Task X4): private L1+L2 per core, shared L3 ----
+    # Each core: CPU -> private L1I/L1D -> per-core L2XBar -> private L2 -> shared
+    # l3bus -> shared L3. Stats are named system.cpu0.*, system.cpu1.*, ...
+    system.cpu = [make_cpu(i) for i in range(args.num_cpus)]
+    system.l2bus = [L2XBar() for _ in range(args.num_cpus)]
+    system.l2 = [L2Cache() for _ in range(args.num_cpus)]
+    for i in range(args.num_cpus):
+        cpu = system.cpu[i]
+        cpu.icache = L1ICache()
+        cpu.dcache = L1DCache()
+        cpu.dcache.tag_latency = args.l1d_read_latency
+        cpu.dcache.data_latency = args.l1d_read_latency
+        cpu.dcache.write_latency = args.l1d_write_latency
+        cpu.icache.cpu_side = cpu.icache_port
+        cpu.dcache.cpu_side = cpu.dcache_port
+
+        l2bus = system.l2bus[i]
+        cpu.icache.mem_side = l2bus.cpu_side_ports
+        cpu.dcache.mem_side = l2bus.cpu_side_ports
+
+        l2 = system.l2[i]
+        l2.tag_latency = args.l2_read_latency
+        l2.data_latency = args.l2_read_latency
+        l2.write_latency = args.l2_write_latency
+        l2.cpu_side = l2bus.mem_side_ports
+        l2.mem_side = system.l3bus.cpu_side_ports
 
 # L3 (parameters from CLI)
 system.l3 = L3Cache()
@@ -186,7 +224,11 @@ system.membus = SystemXBar()
 system.l3.mem_side = system.membus.cpu_side_ports
 
 # Interrupt wiring (RISC-V CPU still needs this)
-system.cpu.createInterruptController()
+if args.num_cpus <= 1:
+    system.cpu.createInterruptController()
+else:
+    for cpu in system.cpu:
+        cpu.createInterruptController()
 
 # Memory controller / main memory
 if args.main_mem_type == "dram":
@@ -206,20 +248,30 @@ else:
     system.mem_ctrl.port = system.membus.mem_side_ports
 system.system_port = system.membus.cpu_side_ports
 
-# Workload
-process = Process()
-process.cmd = [args.cmd] + (args.options.split() if args.options else [])
+# Workload (SE multi-program: each core runs an independent copy of --cmd)
 system.workload = SEWorkload.init_compatible(args.cmd)
-system.cpu.workload = process
-system.cpu.createThreads()
-
-# Optional max-insts
-if args.max_insts > 0:
-    system.cpu.max_insts_any_thread = args.max_insts
+cmd_line = [args.cmd] + (args.options.split() if args.options else [])
+if args.num_cpus <= 1:
+    process = Process()
+    process.cmd = cmd_line
+    system.cpu.workload = process
+    system.cpu.createThreads()
+    if args.max_insts > 0:
+        system.cpu.max_insts_any_thread = args.max_insts
+else:
+    for i, cpu in enumerate(system.cpu):
+        # Distinct pid per core so the independent processes don't collide.
+        process = Process(pid=100 + i)
+        process.cmd = cmd_line
+        cpu.workload = process
+        cpu.createThreads()
+        if args.max_insts > 0:
+            cpu.max_insts_any_thread = args.max_insts
 
 
 print(
-    f"[se_mram_l3] L1D read/data_lat={args.l1d_read_latency} "
+    f"[se_mram_l3] cpu={args.cpu_type}x{args.num_cpus} | "
+    f"L1D read/data_lat={args.l1d_read_latency} "
     f"write_lat={args.l1d_write_latency} | "
     f"L2 read/data_lat={args.l2_read_latency} "
     f"write_lat={args.l2_write_latency} | "
