@@ -271,7 +271,11 @@ else:
         process = Process(pid=100 + i)
         process.cmd = cmd_line
         if args.cwd:
-            process.cwd = args.cwd
+            # Per-core cwd (Task X9-2 rate): each core's SPEC process gets its
+            # own working dir <cwd>/core<i> so that fixed-name output files
+            # (e.g. mcf's result file) written by independent copies don't
+            # collide/corrupt. The launching script must pre-create these dirs.
+            process.cwd = f"{args.cwd}/core{i}"
         cpu.workload = process
         cpu.createThreads()
         if args.max_insts > 0:
