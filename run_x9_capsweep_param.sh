@@ -109,7 +109,8 @@ wait "${pids[@]}"
     cat "m5out/x9n_${label}_${size}${TAG_SUFFIX}.row" 2>/dev/null
 done; done; } > "$SUMMARY"
 
-got=$(($(grep -c , "$SUMMARY") ))
+# count DATA rows only: the HEADER line also contains commas, so subtract 1
+got=$(( $(grep -c , "$SUMMARY") - 1 ))
 if (( got >= n_specs )); then
     setstatus "DONE: capsweep ncpu=$NCPU complete ($got/$n_specs rows)"
 else
