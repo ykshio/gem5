@@ -112,13 +112,20 @@ HEADER="config,technology,l3_size,l3_read_lat,l3_write_lat,simTicks,simSeconds,s
 run_pool () {
     local csv="$1"; shift
     local running=0 spec tag tech size rl wl
+    local pids=()
     for spec in "$@"; do
         IFS='|' read -r tag tech size rl wl <<< "$spec"
         run_one "$tag" "$tech" "$size" "$rl" "$wl" "$MAXINSTS" &
+        pids+=($!)
         running=$((running+1))
-        if (( running >= PAR )); then wait -n 2>/dev/null || wait; running=$((running-1)); fi
+        # NB: a bare 'wait' / 'wait -n' (no pid args) also targets the tee child
+        # spawned by `exec > >(tee ...)`, which never exits while this script
+        # holds the pipe open -> permanent deadlock (observed: X9-2 finished but
+        # the pool hung forever before writing its CSV). Always wait on the
+        # explicit run_one pids so tee is never an implicit wait target.
+        if (( running >= PAR )); then wait -n "${pids[@]}" 2>/dev/null || wait "${pids[@]}"; running=$((running-1)); fi
     done
-    wait
+    wait "${pids[@]}"
     { echo "$HEADER"; cat m5out/x9n_*.row 2>/dev/null; } > "$csv"
     say "CSV -> $csv"; cat "$csv"
 }
