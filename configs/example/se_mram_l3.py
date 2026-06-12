@@ -93,6 +93,11 @@ class L3Cache(Cache):
 parser = argparse.ArgumentParser()
 parser.add_argument("--cmd", required=True, help="Workload binary path")
 parser.add_argument("--options", default="", help="Workload arguments")
+parser.add_argument("--cwd", default="",
+                    help="Working directory for the SE process (Task X9). "
+                         "Set this for SPEC binaries (e.g. mcf_s) that read "
+                         "auxiliary input files via relative paths. Empty = "
+                         "gem5 default (unchanged for memstress/hello runs).")
 parser.add_argument("--cpu-type", default="TimingSimpleCPU")
 parser.add_argument("--cpu-clock", default="1GHz")
 parser.add_argument("--mem-size", default="512MB")
@@ -254,6 +259,8 @@ cmd_line = [args.cmd] + (args.options.split() if args.options else [])
 if args.num_cpus <= 1:
     process = Process()
     process.cmd = cmd_line
+    if args.cwd:
+        process.cwd = args.cwd
     system.cpu.workload = process
     system.cpu.createThreads()
     if args.max_insts > 0:
@@ -263,6 +270,8 @@ else:
         # Distinct pid per core so the independent processes don't collide.
         process = Process(pid=100 + i)
         process.cmd = cmd_line
+        if args.cwd:
+            process.cwd = args.cwd
         cpu.workload = process
         cpu.createThreads()
         if args.max_insts > 0:
