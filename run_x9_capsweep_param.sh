@@ -38,6 +38,7 @@ MAXINSTS=${MAXINSTS:-500000000}
 PAR=${PAR:-8}
 TAG_SUFFIX=${TAG_SUFFIX:-}
 LOGTAG=${LOGTAG:-param}
+CPU_TYPE=${CPU_TYPE:-TimingSimpleCPU}   # e.g. DerivO3CPU for the OoO validation
 
 LOG=m5out/x9_${LOGTAG}.log
 STATUS=m5out/x9_${LOGTAG}_status.txt
@@ -66,6 +67,7 @@ run_one () {
         --cmd="$BIN" --options="$INPUT" --cwd="/workspace/gem5/$runcwd" \
         --num-cpus="$NCPU" --l3-size="$size" \
         --l3-read-latency="$rl" --l3-write-latency="$wl" \
+        --cpu-type="$CPU_TYPE" \
         $(maxinsts_arg "$cap") \
         > "$outdir.log" 2>&1
     local s="$outdir/stats.txt"
@@ -88,7 +90,7 @@ run_one () {
 }
 
 say "=================================================================="
-say "X9 capsweep param: CAPS='$CAPS' NCPU=$NCPU MAXINSTS=$MAXINSTS PAR=$PAR TAG_SUFFIX='$TAG_SUFFIX'"
+say "X9 capsweep param: CAPS='$CAPS' NCPU=$NCPU CPU_TYPE=$CPU_TYPE MAXINSTS=$MAXINSTS PAR=$PAR TAG_SUFFIX='$TAG_SUFFIX'"
 setstatus "RUNNING capsweep (CAPS='$CAPS' ncpu=$NCPU)"
 
 pids=(); running=0; n_specs=0
